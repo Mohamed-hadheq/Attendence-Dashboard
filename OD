@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Dashboard</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        /* Custom Scrollbar for Chat */
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        
+        /* Typing indicator dots */
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased relative min-h-screen pb-20">
+
+    <!-- Navbar -->
+    <nav class="bg-indigo-600 text-white shadow-md sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                    <span class="font-bold text-xl tracking-tight">AcademiaTrack</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-sm font-semibold">Alex Carter</div>
+                        <div class="text-xs text-indigo-200">B.Sc Computer Science</div>
+                    </div>
+                    <img src="https://placehold.co/100x100/4f46e5/ffffff?text=AC" alt="Profile" class="w-10 h-10 rounded-full border-2 border-indigo-300">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900">Attendance Dashboard</h1>
+                <p class="text-slate-500 mt-1">Monitor your academic presence and simulate future leave scenarios.</p>
+            </div>
+            
+            <div class="bg-white px-5 py-3 rounded-xl shadow-sm border border-slate-200 flex gap-6">
+                <div class="text-center">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Overall</div>
+                    <div class="text-2xl font-bold text-indigo-600" id="overall-percentage">--%</div>
+                </div>
+                <div class="w-px bg-slate-200"></div>
+                <div class="text-center">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Target</div>
+                    <div class="text-2xl font-bold text-slate-700">75%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Grid: Subjects & Simulator -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Subject Breakdown -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-book-open text-indigo-500 mr-2"></i>Subject Breakdown</h2>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                                <th class="p-4 font-semibold">Subject</th>
+                                <th class="p-4 font-semibold text-center">Attended</th>
+                                <th class="p-4 font-semibold text-center">Total</th>
+                                <th class="p-4 font-semibold text-right">Attendance %</th>
+                                <th class="p-4 font-semibold text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjects-tbody" class="divide-y divide-slate-100">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Leave Simulator -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center gap-2">
+                    <i class="fa-solid fa-flask text-indigo-600"></i>
+                    <h2 class="text-lg font-bold text-slate-800">The OD Simulator</h2>
+                </div>
+                <div class="p-6 space-y-6">
+                    <p class="text-sm text-slate-500">Plan your leaves to see how they impact your final attendance percentage across all subjects instantly.</p>
+                    
+                    <div>
+                        <label class="flex justify-between text-sm font-medium text-slate-700 mb-2">
+                            <span><i class="fa-solid fa-briefcase-medical text-rose-500 w-5"></i> Medical / Sick Leave</span>
+                            <span id="med-val" class="font-bold text-rose-600">0 days</span>
+                        </label>
+                        <p class="text-xs text-slate-400 mb-2">You miss the class (Attended: +0, Total: +1 per day)</p>
+                        <input type="range" id="medical-range" min="0" max="30" value="0" class="w-full accent-rose-500">
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <div>
+                        <label class="flex justify-between text-sm font-medium text-slate-700 mb-2">
+                            <span><i class="fa-solid fa-clipboard-check text-emerald-500 w-5"></i> On-Duty (OD) Leave</span>
+                            <span id="od-val" class="font-bold text-emerald-600">0 days</span>
+                        </label>
+                        <p class="text-xs text-slate-400 mb-2">College sanctioned (Attended: +1, Total: +1 per day)</p>
+                        <input type="range" id="od-range" min="0" max="30" value="0" class="w-full accent-emerald-500">
+                    </div>
+
+                    <div class="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-amber-100">
+                        <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                        <p>Changes here update the dashboard above and charts below to reflect your projected attendance.</p>
+                    </div>
+                    
+                    <button onclick="resetSimulator()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
+                        Reset Simulator
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Grid: Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Bar Chart: Subject Comparison -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 text-center">Subject Attendance (%)</h2>
+                <div class="relative h-64 w-full">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Doughnut Chart: Overall Health -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 text-center">Overall Health</h2>
+                <div class="relative h-64 w-full flex justify-center">
+                    <canvas id="doughnutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- AI Chatbot FAB -->
+    <button id="chatbot-fab" onclick="toggleChat()" class="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-xl flex items-center justify-center text-2xl transition-transform hover:scale-110 z-50 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+        <i class="fa-solid fa-robot"></i>
+    </button>
+
+    <!-- AI Chatbot Window -->
+    <div id="chat-window" class="fixed bottom-24 right-4 sm:right-6 w-[90vw] sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col hidden z-50 overflow-hidden h-[500px] max-h-[80vh] transition-all">
+        <!-- Chat Header -->
+        <div class="bg-indigo-600 text-white p-4 flex justify-between items-center shadow-md z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center text-indigo-600">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm">Attendance Advisor</h3>
+                    <p class="text-[10px] text-indigo-200">Powered by Gemini AI</p>
+                </div>
+            </div>
+            <button onclick="toggleChat()" class="text-white hover:text-indigo-200 focus:outline-none">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto chat-scroll bg-slate-50 flex flex-col gap-4">
+            <!-- Initial AI Message -->
+            <div class="flex gap-2">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                    <i class="fa-solid fa-robot text-sm"></i>
+                </div>
+                <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 border border-slate-200 max-w-[85%]">
+                    Hello! I'm your Attendance Advisor. I can see your dashboard data in real-time. Feel free to ask me "what if" questions about taking leaves, or how to improve your attendance!
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="p-3 bg-white border-t border-slate-200 z-10">
+            <form id="chat-form" onsubmit="handleChatSubmit(event)" class="relative flex items-center">
+                <input type="text" id="chat-input" placeholder="Ask about your attendance..." class="w-full pl-4 pr-12 py-3 bg-slate-100 border-none rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
+                <button type="submit" id="chat-submit-btn" class="absolute right-2 w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:bg-indigo-700 transition-colors focus:outline-none">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const API_KEY = ""; // Intentionally empty string for Canvas runtime injection
+        let isChatOpen = false;
+        let chatHistory = [];
+        
+        // Base Data
+        const baseSubjects = [
+            { id: 'sub1', name: 'Chemistry', attended: 26, total: 35 },
+            { id: 'sub2', name: 'Physics', attended: 32, total: 40 },
+            { id: 'sub3', name: 'Mathematics', attended: 45, total: 50 },
+            { id: 'sub4', name: 'English Lit.', attended: 18, total: 25 },
+            { id: 'sub5', name: 'Computer Sci.', attended: 38, total: 42 }
+        ];
+
+        // Simulation State
+        let simulation = {
+            medicalDays: 0,
+            odDays: 0
+        };
+
+        // Chart Instances
+        let barChartInstance = null;
+        let doughnutChartInstance = null;
+
+        // --- Core Logic & Computation ---
+        
+        // Calculate derived values combining base data and simulation
+        function getComputedData() {
+            let overallAttended = 0;
+            let overallTotal = 0;
+            
+            const computedSubjects = baseSubjects.map(sub => {
+                // Assumption: 1 simulated day = 1 class missed/attended per subject.
+                // For a highly accurate specific subject absence, a real app would need a timetable mapping.
+                // For this dashboard, we distribute the leave across all subjects evenly.
+                
+                const simulatedAttended = sub.attended + parseInt(simulation.odDays);
+                const simulatedTotal = sub.total + parseInt(simulation.odDays) + parseInt(simulation.medicalDays);
+                
+                let percentage = 0;
+                if (simulatedTotal > 0) {
+                    percentage = (simulatedAttended / simulatedTotal) * 100;
+                }
+
+                overallAttended += simulatedAttended;
+                overallTotal += simulatedTotal;
+
+                return {
+                    ...sub,
+                    simulatedAttended,
+                    simulatedTotal,
+                    percentage: percentage.toFixed(1)
+                };
+            });
+
+            const overallPercentage = overallTotal === 0 ? 0 : ((overallAttended / overallTotal) * 100).toFixed(1);
+
+            return {
+                subjects: computedSubjects,
+                overall: {
+                    attended: overallAttended,
+                    total: overallTotal,
+                    percentage: overallPercentage
+                }
+            };
+        }
+
+        // Return appropriate color classes based on percentage
+        function getStatusInfo(percentage) {
+            if (percentage >= 85) return { color: 'text-emerald-600', bg: 'bg-emerald-100', icon: 'fa-check-circle', label: 'Safe' };
+            if (percentage >= 75) return { color: 'text-amber-500', bg: 'bg-amber-100', icon: 'fa-exclamation-triangle', label: 'Borderline' };
+            return { color: 'text-rose-600', bg: 'bg-rose-100', icon: 'fa-xmark-circle', label: 'Critical' };
+        }
+
+        // --- UI Rendering ---
+
+        function renderDashboard() {
+            const data = getComputedData();
+            
+            // Update Overall Stats
+            document.getElementById('overall-percentage').textContent = `${data.overall.percentage}%`;
+            
+            const overallStatus = getStatusInfo(data.overall.percentage);
+            document.getElementById('overall-percentage').className = `text-2xl font-bold ${overallStatus.color}`;
+
+            // Update Subjects Table
+            const tbody = document.getElementById('subjects-tbody');
+            tbody.innerHTML = '';
+            
+            data.subjects.forEach(sub => {
+                const status = getStatusInfo(sub.percentage);
+                const isSimulated = simulation.medicalDays > 0 || simulation.odDays > 0;
+                
+                // Show original vs simulated visually if changed
+                let attendedHtml = sub.simulatedAttended;
+                let totalHtml = sub.simulatedTotal;
+                
+                if (isSimulated) {
+                    if(sub.simulatedAttended !== sub.attended) {
+                        attendedHtml = `<span class="line-through text-slate-400 text-xs mr-1">${sub.attended}</span><span class="text-indigo-600 font-bold">${sub.simulatedAttended}</span>`;
+                    }
+                    if(sub.simulatedTotal !== sub.total) {
+                        totalHtml = `<span class="line-through text-slate-400 text-xs mr-1">${sub.total}</span><span class="text-indigo-600 font-bold">${sub.simulatedTotal}</span>`;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-4 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center font-bold text-xs">${sub.name.substring(0,2)}</div>
+                        <span class="font-medium text-slate-800">${sub.name}</span>
+                    </td>
+                    <td class="p-4 text-center text-slate-600">${attendedHtml}</td>
+                    <td class="p-4 text-center text-slate-600">${totalHtml}</td>
+                    <td class="p-4 text-right">
+                        <span class="font-bold ${status.color}">${sub.percentage}%</span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.bg} ${status.color}">
+                            <i class="fa-solid ${status.icon}"></i> ${status.label}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateCharts(data);
+        }
+
+        // --- Chart Initialization and Updates ---
+        function initCharts() {
+            // Register target line plugin for bar chart
+            const targetLinePlugin = {
+                id: 'targetLine',
+                beforeDraw: chart => {
+                    if (chart.config.options.plugins.targetLine) {
+                        const { ctx, chartArea: { top, right, bottom, left, width, height }, scales: { y } } = chart;
+                        const targetValue = chart.config.options.plugins.targetLine.value;
+                        const targetY = y.getPixelForValue(targetValue);
+                        
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = '#ef4444'; // Rose-500
+                        ctx.setLineDash([5, 5]);
+                        ctx.moveTo(left, targetY);
+                        ctx.lineTo(right, targetY);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#ef4444';
+                        ctx.font = '10px Inter';
+                        ctx.fillText('75% Required', right - 75, targetY - 5);
+                        ctx.restore();
+                    }
+                }
+            };
+
+            // Bar Chart Config
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => `Attendance: ${ctx.raw}%` } },
+                        targetLine: { value: 75 }
+                    }
+                },
+                plugins: [targetLinePlugin]
+            });
+
+            // Doughnut Chart Config
+            const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+            doughnutChartInstance = new Chart(doughnutCtx, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(data) {
+            // Update Bar Chart
+            const labels = data.subjects.map(s => s.name);
+            const percentages = data.subjects.map(s => parseFloat(s.percentage));
+            const bgColors = percentages.map(p => p >= 85 ? '#10b981' : (p >= 75 ? '#f59e0b' : '#ef4444'));
+
+            barChartInstance.data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Attendance %',
+                    data: percentages,
+                    backgroundColor: bgColors,
+                    borderRadius: 4
+                }]
+            };
+            barChartInstance.update();
+
+            // Update Doughnut Chart
+            const totalMissed = data.overall.total - data.overall.attended;
+            doughnutChartInstance.data = {
+                labels: ['Classes Attended', 'Classes Missed'],
+                datasets: [{
+                    data: [data.overall.attended, totalMissed],
+                    backgroundColor: ['#4f46e5', '#e2e8f0'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            };
+            doughnutChartInstance.update();
+        }
+
+        // --- Simulator Interactions ---
+        document.getElementById('medical-range').addEventListener('input', (e) => {
+            simulation.medicalDays = e.target.value;
+            document.getElementById('med-val').textContent = `${simulation.medicalDays} days`;
+            renderDashboard();
+        });
+
+        document.getElementById('od-range').addEventListener('input', (e) => {
+            simulation.odDays = e.target.value;
+            document.getElementById('od-val').textContent = `${simulation.odDays} days`;
+            renderDashboard();
+        });
+
+        function resetSimulator() {
+            document.getElementById('medical-range').value = 0;
+            document.getElementById('od-range').value = 0;
+            simulation.medicalDays = 0;
+            simulation.odDays = 0;
+            document.getElementById('med-val').textContent = `0 days`;
+            document.getElementById('od-val').textContent = `0 days`;
+            renderDashboard();
+        }
+
+
+        // --- Chatbot Logic ---
+        function toggleChat() {
+            const chatWindow = document.getElementById('chat-window');
+            isChatOpen = !isChatOpen;
+            
+            if (isChatOpen) {
+                chatWindow.classList.remove('hidden');
+                chatWindow.classList.add('animate-slide-up');
+                setTimeout(() => document.getElementById('chat-input').focus(), 100);
+            } else {
+                chatWindow.classList.add('hidden');
+                chatWindow.classList.remove('animate-slide-up');
+            }
+        }
+
+        function appendMessage(role, text) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            
+            if (role === 'user') {
+                msgDiv.className = 'flex gap-2 justify-end animate-slide-up';
+                msgDiv.innerHTML = `
+                    <div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none shadow-sm text-sm max-w-[85%] break-words">
+                        ${text}
+                    </div>
+                `;
+            } else if (role === 'model') {
+                msgDiv.className = 'flex gap-2 animate-slide-up';
+                // Use Marked.js to parse markdown from Gemini response safely
+                const htmlText = marked.parse(text); 
+                msgDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 mt-1">
+                        <i class="fa-solid fa-robot text-sm"></i>
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 border border-slate-200 max-w-[85%] prose prose-sm prose-indigo break-words">
+                        ${htmlText}
+                    </div>
+                `;
+            }
+            
+            messagesContainer.appendChild(msgDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showLoading() {
+            const messagesContainer = document.getElementById('chat-messages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'chat-loading';
+            loadingDiv.className = 'flex gap-2 animate-slide-up';
+            loadingDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                    <i class="fa-solid fa-robot text-sm"></i>
+                </div>
+                <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 flex gap-1 items-center">
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full typing-dot"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(loadingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideLoading() {
+            const loader = document.getElementById('chat-loading');
+            if (loader) loader.remove();
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            const inputField = document.getElementById('chat-input');
+            const submitBtn = document.getElementById('chat-submit-btn');
+            const userText = inputField.value.trim();
+            
+            if (!userText) return;
+
+            // UI Updates
+            appendMessage('user', userText);
+            inputField.value = '';
+            inputField.disabled = true;
+            submitBtn.disabled = true;
+            showLoading();
+
+            // Context prep
+            const currentData = getComputedData();
+            
+            // Build system prompt injecting live data
+            const systemPrompt = `You are a highly helpful and smart 'Attendance Advisor' chatbot for a college student.
+            The student's REQUIRED minimum attendance is 75%.
+            
+            CURRENT DASHBOARD DATA (including any active simulation offsets):
+            ${JSON.stringify(currentData, null, 2)}
+            
+            SIMULATION RULES FOR YOUR MATH:
+            If a student asks "What if I take X days of Medical/Sick leave?":
+            - Assume 1 day of leave means missing 1 class for EACH subject.
+            - Medical leave math: Attended classes remains the same (+0). Total classes increases by X (+X).
+            - On-Duty (OD) leave math: Attended classes increases by X (+X). Total classes increases by X (+X).
+            
+            Always calculate their hypothetical future percentages carefully before answering.
+            Keep your answer short, friendly, and conversational. Use bold text for key percentages or subject names. Provide clear warnings if they will drop below 75%. Don't output raw JSON, just speak naturally to the student based on the math.`;
+
+            // Add user turn to chat history
+            chatHistory.push({ role: 'user', parts: [{ text: userText }] });
+
+            const payload = {
+                contents: chatHistory,
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if(result.candidates && result.candidates.length > 0) {
+                    const modelReply = result.candidates[0].content.parts[0].text;
+                    hideLoading();
+                    appendMessage('model', modelReply);
+                    chatHistory.push({ role: 'model', parts: [{ text: modelReply }] });
+                } else {
+                    throw new Error("No response content");
+                }
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                hideLoading();
+                appendMessage('model', "I'm sorry, I'm having trouble connecting to my brain right now. Please try asking again in a moment.");
+                chatHistory.pop(); // Remove failed user prompt from history
+            } finally {
+                inputField.disabled = false;
+                submitBtn.disabled = false;
+                inputField.focus();
+            }
+        }
+
+        window.onload = () => {
+            initCharts();
+            renderDashboard();
+            
+            // Adjust marked.js options for safer/cleaner rendering
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+            }
+        };
+    </script>
+</body>
+</html>
